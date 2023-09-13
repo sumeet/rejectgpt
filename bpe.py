@@ -132,15 +132,10 @@ print(vocab_to_id)
 print(len(vocab_to_id))
 
 corpus_tokens = add_spaces_to_tokenized(corpus_words)
-
 print(corpus_tokens)
-
 
 # Now, you would run the function like this:
 encoded_corpus = encode_corpus(corpus_tokens, vocab_to_id)
-print(encoded_corpus)
 
-id_to_vocab = {v: k for k, v in vocab_to_id.items()}
-
-
-print(list(map(lambda x: id_to_vocab[x], encoded_corpus)))
+# id_to_vocab = {v: k for k, v in vocab_to_id.items()}
+# print(list(map(lambda x: id_to_vocab[x], encoded_corpus)))
