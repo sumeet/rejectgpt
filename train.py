@@ -1,3 +1,5 @@
+import time
+
 import torch
 import torch.nn as nn
 
@@ -27,14 +29,14 @@ class ToyGPT(nn.Module):
 
 
 print("doing the byte pair encoding")
-from bpe import encoded_corpus, vocab_to_id
+from bpe import encoded_corpus, vocab_to_id, encode_text
 
 print("done with the byte pair encoding")
 
 vocab_size = len(vocab_to_id)  # Size of your vocabulary
-embed_size = 64  # Embedding dimension
-num_heads = 2  # Number of attention heads
-num_layers = 2  # Number of layers
+embed_size = 128  # Embedding dimension
+num_heads = 4  # Number of attention heads
+num_layers = 4  # Number of layers
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -80,32 +82,38 @@ labels = torch.tensor(labels, dtype=torch.long)
 dataset = TensorDataset(data, labels)
 
 # Create a DataLoader from the TensorDataset
-batch_size = 512  # You can adjust the batch size
+batch_size = 256  # You can adjust the batch size
 data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-# Training loop
-print("starting the epochs")
-best_loss = float("inf")
 
-for epoch in range(10_000):  # Let's say 100 epochs for example
-    total_loss = 0
-    num_batches = 0
-    for data_batch, label_batch in data_loader:
-        data_batch, label_batch = data_batch.to(device), label_batch.to(device)
+if __name__ == "__main__":
+    # Training loop
+    print("starting the epochs")
+    best_loss = float("inf")
 
-        optimizer.zero_grad()
-        output = model(data_batch)
-        loss = loss_fn(output.view(-1, vocab_size), label_batch.view(-1))
-        loss.backward()
-        optimizer.step()
+    for epoch in range(10_000):  # Let's say 100 epochs for example
+        epoch_start = time.time()
 
-        total_loss += loss.item()
-        num_batches += 1
+        total_loss = 0
+        num_batches = 0
+        for data_batch, label_batch in data_loader:
+            data_batch, label_batch = data_batch.to(device), label_batch.to(device)
 
-    average_loss = total_loss / num_batches
-    print(f"Epoch {epoch + 1}, Average Loss: {average_loss}")
+            optimizer.zero_grad()
+            output = model(data_batch)
+            loss = loss_fn(output.view(-1, vocab_size), label_batch.view(-1))
+            loss.backward()
+            optimizer.step()
 
-    # Save the model if it improves
-    if average_loss < best_loss:
-        best_loss = average_loss
-        torch.save(model.state_dict(), "best_model_state_dict.pth")
+            total_loss += loss.item()
+            num_batches += 1
+
+        average_loss = total_loss / num_batches
+        print(
+            f"Epoch {epoch + 1}, Average Loss: {average_loss} ({time.time() - epoch_start}s)"
+        )
+
+        # Save the model if it improves
+        if average_loss < best_loss:
+            best_loss = average_loss
+            torch.save(model.state_dict(), "best_model_state_dict.pth")

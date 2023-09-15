@@ -1,5 +1,7 @@
+import pickle
 import re
 from collections import Counter, defaultdict
+import os.path
 
 
 def encode_corpus(corpus_tokens, vocab_to_id):
@@ -94,7 +96,16 @@ def merge_vocab(pair, vocab):
     return new_vocab
 
 
+def encode_text(text):
+    corpus_words = tokenize_for_vocab(text.lower())
+    corpus_tokens = add_spaces_to_tokenized(corpus_words)
+    encoded_corpus = encode_corpus(corpus_tokens, vocab_to_id)
+    return encoded_corpus
+
+
 corpus = open("corpus/fountainhead.txt").read()
+corpus += " "
+corpus += open("corpus/atlas.txt").read()
 # for now let's just lowercase everything
 corpus = corpus.lower()
 corpus_words = tokenize_for_vocab(corpus)
@@ -102,40 +113,42 @@ vocab = Counter(map(tuple, corpus_words))
 
 num_merges = 2000  # Number of merge operations to perform
 
-vocab_to_id = {}
-id = 0
-for i in range(num_merges):
-    pairs = get_stats(vocab)
+if not os.path.exists("cache/vocab_to_id.pickle"):
+    vocab_to_id = {}
+    id = 0
+    for i in range(num_merges):
+        pairs = get_stats(vocab)
 
-    for word in vocab:
-        for char in word:
-            if char not in vocab_to_id:
-                vocab_to_id[char] = id
-                id += 1
+        for word in vocab:
+            for char in word:
+                if char not in vocab_to_id:
+                    vocab_to_id[char] = id
+                    id += 1
 
-    if not pairs:
-        break
-    best_pair = max(pairs, key=pairs.get)
-    vocab = merge_vocab(best_pair, vocab)
+        if not pairs:
+            break
+        best_pair = max(pairs, key=pairs.get)
+        vocab = merge_vocab(best_pair, vocab)
 
-    for word in vocab:
-        for char in word:
-            if char not in vocab_to_id:
-                vocab_to_id[char] = id
-                id += 1
+        for word in vocab:
+            for char in word:
+                if char not in vocab_to_id:
+                    vocab_to_id[char] = id
+                    id += 1
 
-# manually add space to the vocab
-vocab_to_id[" "] = id
-id += 1
+    # manually add space to the vocab
+    vocab_to_id[" "] = id
+    id += 1
 
-print(vocab_to_id)
-print(len(vocab_to_id))
+    pickle.dump(vocab_to_id, open("cache/vocab_to_id.pickle", "wb"))
+else:
+    vocab_to_id = pickle.load(open("cache/vocab_to_id.pickle", "rb"))
+
+print(f"vocabulary size is {len(vocab_to_id)}")
 
 corpus_tokens = add_spaces_to_tokenized(corpus_words)
-print(corpus_tokens)
 
 # Now, you would run the function like this:
 encoded_corpus = encode_corpus(corpus_tokens, vocab_to_id)
 
-# id_to_vocab = {v: k for k, v in vocab_to_id.items()}
-# print(list(map(lambda x: id_to_vocab[x], encoded_corpus)))
+id_to_vocab = {v: k for k, v in vocab_to_id.items()}
